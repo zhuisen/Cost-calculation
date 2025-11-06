@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>成本计算器｜SheetA 成本计算 / SheetB 成本反推倍数</title>
+<title>成本计算器｜尺寸推成本 / 重量推成本 / 成本推倍数</title>
 <style>
   :root{
     --bg:#f5f7fb;--card:#ffffff;--muted:#5b6b82;--text:#0f172a;--accent:#2563eb;--line:#e5e7eb
   }
   *{box-sizing:border-box}
   body{margin:0;font:14px/1.45 system-ui,Segoe UI,Helvetica,Arial;background:var(--bg);color:var(--text)}
-  header{padding:14px 18px;border-bottom:1px solid var(--line);background:#fff;z-index:5}
+  header{padding:14px 18px;border-bottom:1px solid #e5e7eb;background:#fff;z-index:5}
   h1{margin:0;font-size:18px;letter-spacing:.2px}
   .sub{color:#64748b;font-size:12px}
   .wrap{max-width:1200px;margin:0 auto;padding:14px}
@@ -18,7 +18,7 @@
   /* 全局参数吸顶栏 */
   #globalBar{
     position:sticky; top:0; z-index:50;
-    display:flex; gap:6px; flex-wrap:wrap; /* 窄屏自动换行，避免横向滚动条 */
+    display:flex; gap:6px; flex-wrap:wrap;
     margin:8px 0 10px; padding:4px;
     background:#F6F9FFCC; border:1px solid #dbe6ff; border-radius:10px;
     align-items:center; justify-content:flex-start;
@@ -40,7 +40,7 @@
   .sheet{display:none}
   .sheet.is-active{display:block}
 
-  /* Sheet 内部工具栏（按钮行） */
+  /* Sheet 内部工具栏 */
   .toolbar.actions{
     display:flex; gap:10px; flex-wrap:wrap;
     background:#F6F9FF; border:1px solid #dbe6ff; border-radius:10px;
@@ -69,7 +69,7 @@
   .vol, .weight, .cost, .ex{background:#F1F5F9}
   td input:hover, td select:hover{border-color:var(--accent);box-shadow:0 0 0 3px #2563eb22}
 
-  /* 合计/总额条 */
+  /* 合计条 */
   .totalbar{
     margin:12px 0 6px;padding:10px 12px;background:#fff;
     border:1px solid #dbe6ff;border-radius:10px;font-size:20px;font-weight:700;color:#0f172a
@@ -80,12 +80,12 @@
 </head>
 <body>
   <header>
-    <h1>成本计算器（SheetA 成本计算 / SheetB 成本反推倍数）</h1>
+    <h1>成本计算器（尺寸推成本 / 重量推成本 / 成本推倍数）</h1>
     <div class="sub">体积单位 <b>cm³</b>（按 mm 尺寸计算后 ÷1000），密度默认 <b>7.85 g/cm³</b>（可编辑）。</div>
   </header>
 
   <div class="wrap">
-    <!-- 全局顶部参数（两张 Sheet 共用） -->
+    <!-- 全局顶部参数（三张 Sheet 共用） -->
     <div id="globalBar">
       <div class="tool"><label for="density">密度(g/cm³)</label><input id="density" type="number" step="0.01" value="7.85"></div>
       <div class="tool"><label for="priceLine">线 单价(元/kg)</label><input id="priceLine" type="number" step="0.01" value="5"></div>
@@ -93,13 +93,14 @@
       <div class="tool"><label for="defaultMult">默认倍数</label><input id="defaultMult" type="number" step="0.01" value="3"></div>
     </div>
 
-    <!-- 页签 -->
+    <!-- 页签（顺序：A 尺寸推成本 / B 重量推成本 / C 成本推倍数） -->
     <div class="tabs">
-      <button id="tab-cost" class="active">Sheet A · 成本计算</button>
-      <button id="tab-alt">Sheet B · 成本反推倍数</button>
+      <button id="tab-cost" class="active">Sheet A · 尺寸推成本</button>
+      <button id="tab-weight">Sheet B · 重量推成本</button>
+      <button id="tab-alt">Sheet C · 成本推倍数</button>
     </div>
 
-    <!-- Sheet A：成本计算 -->
+    <!-- Sheet A：尺寸推成本（原：成本计算） -->
     <div id="sheet-cost" class="sheet is-active">
       <div class="toolbar actions">
         <button id="addRow">+ 新增一行</button>
@@ -137,7 +138,7 @@
         </tfoot>
       </table>
 
-      <div class="totalbar">总出厂价合计（含倍数）：<span class="currency">¥</span> <span id="grandEx">0.00</span></div>
+      <div class="totalbar">总出厂价合计：<span class="currency">¥</span> <span id="grandEx">0.00</span></div>
 
       <p class="hint" style="margin-top:10px">说明：
         <br>• <b>线（实心圆）</b>：需填写 <b>长、直径、数量</b>
@@ -146,7 +147,46 @@
       </p>
     </div>
 
-    <!-- Sheet B：成本反推倍数 -->
+    <!-- Sheet B：重量推成本（原：Sheet C） -->
+    <div id="sheet-weight" class="sheet">
+      <div class="toolbar actions">
+        <button id="addRowC">+ 新增一行</button>
+        <button id="exportCsvC" class="secondary">导出 CSV（Excel 可打开）</button>
+        <button id="resetC" class="ghost">清空表格</button>
+      </div>
+
+      <table id="tblC">
+        <thead>
+          <tr>
+            <th>类型</th>
+            <th class="nowrap">重量 / kg</th>
+            <th class="nowrap">数量 / pc</th>
+            <th class="nowrap">成本(元)</th>
+            <th class="nowrap">倍数（默认3）</th>
+            <th class="nowrap">出厂价(元)</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="bodyC"></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" class="hint">合计</td>
+            <td class="num" id="sumCostC">0.00</td>
+            <td></td>
+            <td class="num" id="sumExC">0.00</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="totalbar">总出厂价合计：<span class="currency">¥</span> <span id="grandExC">0.00</span></div>
+
+      <p class="hint" style="margin-top:10px">
+        说明（重量推成本）：成本 = 重量 × 数量 × 单价（线用“线 单价(元/kg)”，圆管/方管用“管 单价(元/kg)”）；出厂价 = 成本 × 倍数（未填写则使用“默认倍数”）。
+      </p>
+    </div>
+
+    <!-- Sheet C：成本推倍数（原：Sheet B 成本反推倍数） -->
     <div id="sheet-alt" class="sheet">
       <div class="toolbar actions">
         <button id="addRowB">+ 新增一行</button>
@@ -168,9 +208,9 @@
         <tbody id="bodyB"></tbody>
       </table>
 
-      <div class="totalbar">总倍数：<span id="sumMultB">0.00</span></div>
+      <div class="totalbar">平均倍数：<span id="sumMultB">0.00</span></div>
 
-      <p class="hint" style="margin-top:10px">说明（Sheet B）：倍数 = 出厂价 ÷ （重量 × 数量 × 单价）。其中：线使用“线 单价(元/kg)”，圆管/方管使用“管 单价(元/kg)”。</p>
+      <p class="hint" style="margin-top:10px">说明（成本推倍数）：倍数 = 出厂价 ÷ （重量 × 数量 × 单价）。其中：线使用“线 单价(元/kg)”，圆管/方管使用“管 单价(元/kg)”。</p>
     </div>
   </div>
 
@@ -184,11 +224,14 @@ const fmt = n => (isFinite(n) ? Number(n).toFixed(2) : '0.00');
 function switchSheet(id){
   $$('.sheet').forEach(s=>s.classList.remove('is-active'));
   $$('.tabs button').forEach(b=>b.classList.remove('active'));
-  const btnId = id==='sheet-cost' ? 'tab-cost' : 'tab-alt';
+  let btnId = 'tab-cost';
+  if(id==='sheet-weight') btnId = 'tab-weight';
+  if(id==='sheet-alt') btnId = 'tab-alt';
   document.getElementById(id)?.classList.add('is-active');
   document.getElementById(btnId)?.classList.add('active');
 }
 document.getElementById('tab-cost').addEventListener('click',()=>switchSheet('sheet-cost'));
+document.getElementById('tab-weight').addEventListener('click',()=>switchSheet('sheet-weight'));
 document.getElementById('tab-alt').addEventListener('click',()=>switchSheet('sheet-alt'));
 
 /* ========= 全局参数 ========= */
@@ -199,9 +242,8 @@ function priceByType(type){
   return (type==='线') ? lineP : pipeP;
 }
 
-/* ========= A：成本计算 ========= */
+/* ========= A：尺寸推成本 ========= */
 function computeVolumeCm3(type, Lmm, W1mm, W2mm, Tmm){
-  // 输入单位：mm，结果：cm^3（所以 ÷1000）
   const L = Number(Lmm||0);
   const W1 = Number(W1mm||0);
   const W2 = Number(W2mm||0);
@@ -209,7 +251,7 @@ function computeVolumeCm3(type, Lmm, W1mm, W2mm, Tmm){
   const PI = Math.PI;
 
   if(type==='线'){
-    const r = W1/2; // 直径 = W1
+    const r = W1/2;
     const vol_mm3 = PI * r*r * L;
     return vol_mm3/1000;
   }
@@ -221,7 +263,7 @@ function computeVolumeCm3(type, Lmm, W1mm, W2mm, Tmm){
   if(type==='方管'){
     const a = W1; const b = (W2>0?W2:W1);
     let ai = a - 2*T, bi = b - 2*T;
-    if(ai<=0 || bi<=0){ // 实心方柱兜底
+    if(ai<=0 || bi<=0){
       return (a*b*L)/1000;
     }
     const area_mm2 = (a*b - ai*bi);
@@ -298,7 +340,7 @@ function recalcRow(tr, doSave){
 
   const volPer = computeVolumeCm3(d.type, d.len, d.w1, d.w2, d.t);
   const vol = volPer * (d.qty||1);
-  const weightKg = vol * currentDensity() / 1000; // g -> kg
+  const weightKg = vol * currentDensity() / 1000; // g->kg
   const unitPrice = priceByType(d.type);
   const cost = weightKg * unitPrice;
   const ex = cost * mult;
@@ -358,7 +400,7 @@ function exportCsv(){
   const blob = new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8;'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = '成本计算导出.csv';
+  a.download = '尺寸推成本-导出.csv';
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -380,7 +422,101 @@ function copyAllToClipboard(){
   navigator.clipboard.writeText(text).then(()=>alert('✅ 已复制整表内容，可直接粘贴到 Excel'));
 }
 
-/* ========= B：成本反推倍数 ========= */
+/* ========= B：重量推成本 ========= */
+function rowTemplateC(data={}){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="group-input"><select class="typeC">
+      <option value="线">线</option>
+      <option value="圆管">圆管</option>
+      <option value="方管">方管</option>
+    </select></td>
+    <td class="group-input"><input class="wkgC num" type="number" step="0.01" value="${data.wkg??''}" placeholder="重量kg"></td>
+    <td class="group-input"><input class="qtyC num" type="number" step="1" value="${data.qty??1}"></td>
+    <td class="group-calc num costC">0.00</td>
+    <td class="group-input"><input class="multC num" type="number" step="0.01" value="${data.mult??''}" placeholder="默认"></td>
+    <td class="group-calc num exC">0.00</td>
+    <td class="row-actions">
+      <button class="dupC"  title="复制一行">复制</button>
+      <button class="delC"  title="删除" type="button">删除</button>
+    </td>
+  `;
+  tr.$ = s => tr.querySelector(s);
+  tr.typeSel = tr.$('.typeC');
+  tr.wkg = tr.$('.wkgC');
+  tr.qty = tr.$('.qtyC');
+  tr.mult = tr.$('.multC');
+  tr.costCell = tr.$('.costC');
+  tr.exCell = tr.$('.exC');
+
+  if(data.type){ tr.typeSel.value = data.type; }
+  if(data.mult==null) tr.mult.value = $('#defaultMult').value;
+
+  [tr.typeSel, tr.wkg, tr.qty, tr.mult].forEach(el => el.addEventListener('input', ()=>recalcRowC(tr,true)));
+  tr.$('.dupC').addEventListener('click', ()=>{ addRowC(getRowDataC(tr)); });
+  tr.$('.delC').addEventListener('click', ()=>{ tr.remove(); saveAll(); recalcTotalsC(); });
+
+  recalcRowC(tr,false);
+  return tr;
+}
+
+function getRowDataC(tr){
+  return {
+    type: tr.typeSel.value,
+    wkg : +tr.wkg.value||0,
+    qty : +tr.qty.value||1,
+    mult: tr.mult.value===''? null : (+tr.mult.value||0)
+  };
+}
+
+function recalcRowC(tr, doSave){
+  const d = getRowDataC(tr);
+  const unit = priceByType(d.type);
+  const cost = (d.wkg||0) * (d.qty||1) * (unit||0);
+  const mult = d.mult ?? (+$('#defaultMult').value||1);
+  const ex = cost * mult;
+
+  tr.costCell.textContent = fmt(cost);
+  tr.exCell.textContent   = fmt(ex);
+
+  if(doSave) saveAll();
+  recalcTotalsC();
+}
+
+function addRowC(init={}){ $('#bodyC').appendChild(rowTemplateC(init)); saveAll(); recalcTotalsC(); }
+
+function exportCsvC(){
+  const header = ['类型','重量(kg)','数量(pc)','成本(元)','倍数','出厂价(元)'];
+  const rows = $$('#bodyC tr').map(tr=>{
+    const d = getRowDataC(tr);
+    return [
+      d.type, d.wkg, d.qty,
+      tr.querySelector('.costC').textContent,
+      (d.mult??(+$('#defaultMult').value||1)),
+      tr.querySelector('.exC').textContent
+    ];
+  });
+  const csv = [header, ...rows].map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '重量推成本-导出.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function recalcTotalsC(){
+  let sumCost=0, sumEx=0;
+  $$('#bodyC tr').forEach(tr=>{
+    sumCost += +tr.querySelector('.costC').textContent || 0;
+    sumEx   += +tr.querySelector('.exC').textContent   || 0;
+  });
+  $('#sumCostC').textContent = fmt(sumCost);
+  $('#sumExC').textContent   = fmt(sumEx);
+  const g = $('#grandExC'); if(g) g.textContent = fmt(sumEx);
+}
+
+/* ========= C：成本推倍数 ========= */
 function priceByTypeB(type){ return priceByType(type); }
 
 function rowTemplateB(data={}){
@@ -442,7 +578,7 @@ function recalcTotalsB(){
   const cells = $$('#bodyB .multB');
   let sum = 0, n = 0;
   cells.forEach(c=>{ const v = +c.textContent; if(isFinite(v) && v>0){ sum += v; n++; } });
-  const avg = n ? sum / n : 0;   // 这里用“平均倍数”，如需改为求和，把 avg 改成 sum 即可
+  const avg = n ? sum / n : 0;
   const el = $('#sumMultB'); if(el) el.textContent = fmt(avg);
 }
 
@@ -456,17 +592,18 @@ function exportCsvB(){
   const blob = new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8;'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = '成本反推倍数-导出.csv';
+  a.download = '成本推倍数-导出.csv';
   a.click();
   URL.revokeObjectURL(a.href);
 }
 
-/* ========= 存储（A+B+全局参数） ========= */
+/* ========= 存储（A+B+C+全局参数） ========= */
 const STORAGE_KEY = 'cost-calc-v3';
 
 function saveAll(){
   const rowsA = $$('#body tr').map(tr=>getRowData(tr));
-  const rowsB = $$('#bodyB tr').map(tr=>getRowDataB(tr));
+  const rowsB = $$('#bodyC tr').map(tr=>getRowDataC(tr)); // 注意：B 是 bodyC
+  const rowsC = $$('#bodyB tr').map(tr=>getRowDataB(tr)); // 注意：C 是 bodyB
   const state = {
     defaults:{
       density:+$('#density').value||7.85,
@@ -474,7 +611,7 @@ function saveAll(){
       pricePipe:+$('#pricePipe').value||7,
       mult:+$('#defaultMult').value||3
     },
-    rowsA, rowsB
+    rowsA, rowsB, rowsC
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
@@ -491,8 +628,10 @@ function loadAll(){
       $('#defaultMult').value= st.defaults.mult ?? 3;
     }
     if(Array.isArray(st.rowsA)) st.rowsA.forEach(r=>addRow(r));
-    if(Array.isArray(st.rowsB)) st.rowsB.forEach(r=>addRowB(r));
+    if(Array.isArray(st.rowsB)) st.rowsB.forEach(r=>addRowC(r)); // 加载到重量推成本
+    if(Array.isArray(st.rowsC)) st.rowsC.forEach(r=>addRowB(r)); // 加载到成本推倍数
     recalcTotals();
+    recalcTotalsC();
     recalcTotalsB();
     return true;
   }catch(e){ console.warn(e); }
@@ -512,18 +651,34 @@ $('#reset').addEventListener('click',()=>{
 });
 ['priceLine','pricePipe','defaultMult','density'].forEach(id=>{
   $('#'+id).addEventListener('input',()=>{
-    // 全局参数变化 → 两张表都重算
-    $$('#body tr').forEach(tr=>recalcRow(tr,false));
-    $$('#bodyB tr').forEach(tr=>recalcRowB(tr,false));
-    recalcTotals(); recalcTotalsB(); saveAll();
+    // 全局参数变化 → 三张表都重算
+    $$('#body tr').forEach(tr=>recalcRow(tr,false));   // A
+    $$('#bodyC tr').forEach(tr=>recalcRowC(tr,false)); // B（重量推成本）
+    $$('#bodyB tr').forEach(tr=>recalcRowB(tr,false)); // C（成本推倍数）
+    recalcTotals(); recalcTotalsC(); recalcTotalsB(); saveAll();
   });
 });
 
-/* Sheet B 事件 */
+/* B：重量推成本 事件 */
+$('#addRowC').addEventListener('click',()=>addRowC());
+$('#exportCsvC').addEventListener('click',exportCsvC);
+$('#resetC').addEventListener('click',()=>{
+  if(confirm('确定要清空 Sheet B 吗？')){
+    $('#bodyC').innerHTML = '';
+    recalcTotalsC();
+    saveAll();
+  }
+});
+
+/* C：成本推倍数 事件 */
 $('#addRowB').addEventListener('click',()=>addRowB());
 $('#exportCsvB').addEventListener('click',exportCsvB);
 $('#resetB').addEventListener('click',()=>{
-  if(confirm('确定要清空 Sheet B 吗？')){ $('#bodyB').innerHTML=''; recalcTotalsB(); saveAll(); }
+  if(confirm('确定要清空 Sheet C 吗？')){
+    $('#bodyB').innerHTML='';
+    recalcTotalsB();
+    saveAll();
+  }
 });
 
 /* ========= 初始化 ========= */
