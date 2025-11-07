@@ -49,15 +49,15 @@
 
   button{background:var(--accent);border:1px solid #1e40af;color:#fff;padding:8px 12px;border-radius:10px;cursor:pointer}
   button.secondary{background:#eef2ff;color:#1e40af;border-color:#c7d2fe}
-  button.ghost{background:#fff;color:#1e3a8a;border-color:var(--line)}
+  button.ghost{background:#fff;color:#1e3a8a;border-color:#e5e7eb}
   button:hover{filter:brightness(1.03)}
 
-  table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  thead th{background:#f8fafc;border-bottom:1px solid var(--line);color:#0f172a;font-weight:600;padding:8px 6px;font-size:12px;white-space:nowrap}
-  tbody td{border-bottom:1px solid var(--line);padding:4px 6px}
+  table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}
+  thead th{background:#f8fafc;border-bottom:1px solid #e5e7eb;color:#0f172a;font-weight:600;padding:8px 6px;font-size:12px;white-space:nowrap}
+  tbody td{border-bottom:1px solid #e5e7eb;padding:4px 6px}
   tbody tr:last-child td{border-bottom:none}
   .num{text-align:right}
-  tfoot td{padding:10px;border-top:1px solid var(--line);background:#f8fafc}
+  tfoot td{padding:10px;border-top:1px solid #e5e7eb;background:#f8fafc}
   .row-actions{display:flex;gap:6px}
   .nowrap{white-space:nowrap}
   td input, td select{min-width:60px;width:90px;transition:border-color .15s ease, box-shadow .15s ease}
@@ -87,20 +87,20 @@
   <div class="wrap">
     <!-- 全局顶部参数（三张 Sheet 共用） -->
     <div id="globalBar">
-      <div class="tool"><label for="density">密度(g/cm³)</label><input id="density" type="number" step="0.01" value="7.85"></div>
-      <div class="tool"><label for="priceLine">线 单价(元/kg)</label><input id="priceLine" type="number" step="0.01" value="5"></div>
-      <div class="tool"><label for="pricePipe">管 单价(元/kg)</label><input id="pricePipe" type="number" step="0.01" value="7"></div>
-      <div class="tool"><label for="defaultMult">默认倍数</label><input id="defaultMult" type="number" step="0.01" value="3"></div>
+      <div class="tool"><label for="density">密度(g/cm³)</label><input id="density" type="number" step="0.01" min="0" value="7.85"></div>
+      <div class="tool"><label for="priceLine">线 单价(元/kg)</label><input id="priceLine" type="number" step="0.01" min="0" value="5"></div>
+      <div class="tool"><label for="pricePipe">管 单价(元/kg)</label><input id="pricePipe" type="number" step="0.01" min="0" value="7"></div>
+      <div class="tool"><label for="defaultMult">默认倍数</label><input id="defaultMult" type="number" step="0.1" min="0" value="3"></div>
     </div>
 
-    <!-- 页签（顺序：A 尺寸推成本 / B 重量推成本 / C 成本推倍数） -->
+    <!-- 页签 -->
     <div class="tabs">
       <button id="tab-cost" class="active">Sheet A · 尺寸推成本</button>
       <button id="tab-weight">Sheet B · 重量推成本</button>
       <button id="tab-alt">Sheet C · 成本推倍数</button>
     </div>
 
-    <!-- Sheet A：尺寸推成本（原：成本计算） -->
+    <!-- Sheet A：尺寸推成本 -->
     <div id="sheet-cost" class="sheet is-active">
       <div class="toolbar actions">
         <button id="addRow">+ 新增一行</button>
@@ -147,7 +147,7 @@
       </p>
     </div>
 
-    <!-- Sheet B：重量推成本（原：Sheet C） -->
+    <!-- Sheet B：重量推成本 -->
     <div id="sheet-weight" class="sheet">
       <div class="toolbar actions">
         <button id="addRowC">+ 新增一行</button>
@@ -186,7 +186,7 @@
       </p>
     </div>
 
-    <!-- Sheet C：成本推倍数（原：Sheet B 成本反推倍数） -->
+    <!-- Sheet C：成本推倍数 -->
     <div id="sheet-alt" class="sheet">
       <div class="toolbar actions">
         <button id="addRowB">+ 新增一行</button>
@@ -218,7 +218,9 @@
 /* ========= 共用小工具 ========= */
 const $ = (s,p=document) => p.querySelector(s);
 const $$ = (s,p=document) => [...p.querySelectorAll(s)];
-const fmt = n => (isFinite(n) ? Number(n).toFixed(2) : '0.00');
+const fmt  = n => (isFinite(n) ? Number(n).toFixed(2) : '0.00');
+const fmt1 = n => (isFinite(n) ? Number(n).toFixed(1) : '0.0');
+const abs  = v => Math.abs(Number(v)||0);
 
 /* ========= 页签切换 ========= */
 function switchSheet(id){
@@ -235,19 +237,19 @@ document.getElementById('tab-weight').addEventListener('click',()=>switchSheet('
 document.getElementById('tab-alt').addEventListener('click',()=>switchSheet('sheet-alt'));
 
 /* ========= 全局参数 ========= */
-function currentDensity(){ return +$('#density').value || 7.85; }
+function currentDensity(){ return abs($('#density').value) || 7.85; }
 function priceByType(type){
-  const lineP = +$('#priceLine').value||0;
-  const pipeP = +$('#pricePipe').value||0;
+  const lineP = abs($('#priceLine').value)||0;
+  const pipeP = abs($('#pricePipe').value)||0;
   return (type==='线') ? lineP : pipeP;
 }
 
 /* ========= A：尺寸推成本 ========= */
 function computeVolumeCm3(type, Lmm, W1mm, W2mm, Tmm){
-  const L = Number(Lmm||0);
-  const W1 = Number(W1mm||0);
-  const W2 = Number(W2mm||0);
-  const T  = Number(Tmm||0);
+  const L = abs(Lmm);
+  const W1 = abs(W1mm);
+  const W2 = abs(W2mm);
+  const T  = abs(Tmm);
   const PI = Math.PI;
 
   if(type==='线'){
@@ -280,15 +282,15 @@ function rowTemplate(data={}){
       <option value="圆管">圆管</option>
       <option value="方管">方管</option>
     </select></td>
-    <td class="group-input"><input class="len num" type="number" step="0.01" value="${data.len??''}" placeholder="mm"></td>
-    <td class="group-input"><input class="w1 num" type="number" step="0.01" value="${data.w1??''}" placeholder="直径/管宽1"></td>
-    <td class="group-input"><input class="w2 num" type="number" step="0.01" value="${data.w2??''}" placeholder="管宽2(方管)"></td>
-    <td class="group-input"><input class="t  num" type="number" step="0.01" value="${data.t??''}"  placeholder="壁厚"></td>
-    <td class="group-input"><input class="qty num" type="number" step="1"    value="${data.qty??1}"></td>
+    <td class="group-input"><input class="len num" type="number" step="1" min="0" value="${data.len??''}" placeholder="mm"></td>
+    <td class="group-input"><input class="w1 num"  type="number" step="1" min="0" value="${data.w1??''}" placeholder="直径/管宽1"></td>
+    <td class="group-input"><input class="w2 num"  type="number" step="1" min="0" value="${data.w2??''}" placeholder="管宽2(方管)"></td>
+    <td class="group-input"><input class="t  num"   type="number" step="0.1" min="0" value="${data.t??''}"  placeholder="壁厚"></td>
+    <td class="group-input"><input class="qty num" type="number" step="1" min="0" value="${data.qty??1}"></td>
     <td class="group-calc num vol">0.00</td>
     <td class="group-calc num weight">0.00</td>
     <td class="group-calc num cost">0.00</td>
-    <td class="group-input"><input class="mult num" type="number" step="0.01" value="${data.mult??''}" placeholder="默认"></td>
+    <td class="group-input"><input class="mult num" type="number" step="0.1" min="0" value="${data.mult??''}" placeholder="默认"></td>
     <td class="group-calc num ex">0.00</td>
     <td class="row-actions">
       <button class="dup"  title="复制一行">复制</button>
@@ -312,8 +314,26 @@ function rowTemplate(data={}){
 
   if(data.type){ tr.typeSel.value = data.type }
 
+  // 实时重算
   [tr.typeSel,tr.len,tr.w1,tr.w2,tr.t,tr.qty,tr.mult]
     .forEach(el=>el.addEventListener('input',()=>recalcRow(tr,true)));
+
+  // 结束输入：自动取绝对值 & 指定小数位
+  [tr.len,tr.w1,tr.w2,tr.qty].forEach(el=>{
+    el.addEventListener('change', ()=>{
+      el.value = String(Math.round(abs(el.value))); // 保证整数且非负
+      recalcRow(tr,true);
+    });
+  });
+  tr.t.addEventListener('change', ()=>{
+    tr.t.value = fmt1(abs(tr.t.value));            // 1位小数 & 非负
+    recalcRow(tr,true);
+  });
+  tr.mult.addEventListener('change', ()=>{
+    if(tr.mult.value!==''){ tr.mult.value = fmt1(abs(tr.mult.value)); }
+    recalcRow(tr,true);
+  });
+
   tr.$('.dup').addEventListener('click',()=>{ addRow(getRowData(tr)); });
   tr.$('.del').addEventListener('click',()=>{ tr.remove(); recalcTotals(); saveAll(); });
   tr.$('.copy').addEventListener('click',()=>copyRowToClipboard(tr));
@@ -325,25 +345,25 @@ function rowTemplate(data={}){
 function getRowData(tr){
   return {
     type: tr.typeSel.value,
-    len: +tr.len.value||0,
-    w1 : +tr.w1.value||0,
-    w2 : +tr.w2.value||0,
-    t  : +tr.t.value||0,
-    qty: +tr.qty.value||1,
-    mult: tr.mult.value===''? null : (+tr.mult.value||0)
+    len:  Math.round(abs(tr.len.value)),
+    w1 :  Math.round(abs(tr.w1.value)),
+    w2 :  Math.round(abs(tr.w2.value)),
+    t  :  abs(tr.t.value),
+    qty:  Math.round(abs(tr.qty.value)||0), // 允许为 0
+    mult: tr.mult.value===''? null : abs(tr.mult.value)
   }
 }
 
 function recalcRow(tr, doSave){
   const d = getRowData(tr);
-  const mult = d.mult ?? (+$('#defaultMult').value||1);
+  const mult = (d.mult==null ? abs($('#defaultMult').value)||1 : d.mult);
 
-  const volPer = computeVolumeCm3(d.type, d.len, d.w1, d.w2, d.t);
-  const vol = volPer * (d.qty||1);
-  const weightKg = vol * currentDensity() / 1000; // g->kg
-  const unitPrice = priceByType(d.type);
-  const cost = weightKg * unitPrice;
-  const ex = cost * mult;
+  const volPer   = computeVolumeCm3(d.type, d.len, d.w1, d.w2, d.t);
+  const vol      = volPer * (d.qty||0);
+  const weightKg = vol * currentDensity() / 1000;
+  const unitPrice= priceByType(d.type);
+  const cost     = weightKg * unitPrice;
+  const ex       = (d.qty===0) ? 0 : (cost * mult);
 
   tr.vol.textContent    = fmt(vol);
   tr.weight.textContent = fmt(weightKg);
@@ -372,11 +392,11 @@ function addRow(init={}){ $('#body').appendChild(rowTemplate(init)); saveAll(); 
 function copyRowToClipboard(tr){
   const d = getRowData(tr);
   const cells = [
-    d.type, d.len, d.w1, d.w2, d.t, d.qty,
+    d.type, d.len, d.w1, d.w2, fmt1(d.t), d.qty,
     tr.querySelector('.vol').textContent,
     tr.querySelector('.weight').textContent,
     tr.querySelector('.cost').textContent,
-    (d.mult ?? (+$('#defaultMult').value||1)),
+    fmt1(d.mult==null ? abs($('#defaultMult').value) : d.mult),
     tr.querySelector('.ex').textContent
   ];
   navigator.clipboard.writeText(cells.join('\t')).then(()=>alert('已复制当前行，直接粘贴到 Excel 即可'));
@@ -387,11 +407,11 @@ function exportCsv(){
   const rows = $$('#body tr').map(tr=>{
     const d = getRowData(tr);
     return [
-      d.type, d.len, d.w1, d.w2, d.t, d.qty,
+      d.type, d.len, d.w1, d.w2, fmt1(d.t), d.qty,
       tr.querySelector('.vol').textContent,
       tr.querySelector('.weight').textContent,
       tr.querySelector('.cost').textContent,
-      (d.mult??(+$('#defaultMult').value||1)),
+      fmt1(d.mult==null ? abs($('#defaultMult').value) : d.mult),
       tr.querySelector('.ex').textContent
     ];
   });
@@ -410,11 +430,11 @@ function copyAllToClipboard(){
   const rows = $$('#body tr').map(tr=>{
     const d = getRowData(tr);
     return [
-      d.type, d.len, d.w1, d.w2, d.t, d.qty,
+      d.type, d.len, d.w1, d.w2, fmt1(d.t), d.qty,
       tr.querySelector('.vol').textContent,
       tr.querySelector('.weight').textContent,
       tr.querySelector('.cost').textContent,
-      (d.mult??(+$('#defaultMult').value||1)),
+      fmt1(d.mult==null ? abs($('#defaultMult').value) : d.mult),
       tr.querySelector('.ex').textContent
     ];
   });
@@ -431,10 +451,10 @@ function rowTemplateC(data={}){
       <option value="圆管">圆管</option>
       <option value="方管">方管</option>
     </select></td>
-    <td class="group-input"><input class="wkgC num" type="number" step="0.01" value="${data.wkg??''}" placeholder="重量kg"></td>
-    <td class="group-input"><input class="qtyC num" type="number" step="1" value="${data.qty??1}"></td>
+    <td class="group-input"><input class="wkgC num" type="number" step="0.01" min="0" value="${data.wkg??''}" placeholder="重量kg"></td>
+    <td class="group-input"><input class="qtyC num" type="number" step="1" min="0" value="${data.qty??1}"></td>
     <td class="group-calc num costC">0.00</td>
-    <td class="group-input"><input class="multC num" type="number" step="0.01" value="${data.mult??''}" placeholder="默认"></td>
+    <td class="group-input"><input class="multC num" type="number" step="0.1" min="0" value="${data.mult??''}" placeholder="默认"></td>
     <td class="group-calc num exC">0.00</td>
     <td class="row-actions">
       <button class="dupC"  title="复制一行">复制</button>
@@ -453,6 +473,12 @@ function rowTemplateC(data={}){
   if(data.mult==null) tr.mult.value = $('#defaultMult').value;
 
   [tr.typeSel, tr.wkg, tr.qty, tr.mult].forEach(el => el.addEventListener('input', ()=>recalcRowC(tr,true)));
+
+  // 结束输入：取绝对值；数量为整数；倍数保留1位
+  tr.wkg.addEventListener('change', ()=>{ tr.wkg.value = String(abs(tr.wkg.value)); recalcRowC(tr,true); });
+  tr.qty.addEventListener('change', ()=>{ tr.qty.value = String(Math.round(abs(tr.qty.value))); recalcRowC(tr,true); });
+  tr.mult.addEventListener('change', ()=>{ if(tr.mult.value!==''){ tr.mult.value = fmt1(abs(tr.mult.value)); } recalcRowC(tr,true); });
+
   tr.$('.dupC').addEventListener('click', ()=>{ addRowC(getRowDataC(tr)); });
   tr.$('.delC').addEventListener('click', ()=>{ tr.remove(); saveAll(); recalcTotalsC(); });
 
@@ -463,18 +489,18 @@ function rowTemplateC(data={}){
 function getRowDataC(tr){
   return {
     type: tr.typeSel.value,
-    wkg : +tr.wkg.value||0,
-    qty : +tr.qty.value||1,
-    mult: tr.mult.value===''? null : (+tr.mult.value||0)
+    wkg : abs(tr.wkg.value),
+    qty : Math.round(abs(tr.qty.value)||0), // 可为 0
+    mult: tr.mult.value===''? null : abs(tr.mult.value)
   };
 }
 
 function recalcRowC(tr, doSave){
   const d = getRowDataC(tr);
   const unit = priceByType(d.type);
-  const cost = (d.wkg||0) * (d.qty||1) * (unit||0);
-  const mult = d.mult ?? (+$('#defaultMult').value||1);
-  const ex = cost * mult;
+  const cost = (d.wkg||0) * (d.qty||0) * (unit||0);
+  const mult = (d.mult==null ? abs($('#defaultMult').value)||1 : d.mult);
+  const ex = (d.qty===0) ? 0 : (cost * mult);
 
   tr.costCell.textContent = fmt(cost);
   tr.exCell.textContent   = fmt(ex);
@@ -492,7 +518,7 @@ function exportCsvC(){
     return [
       d.type, d.wkg, d.qty,
       tr.querySelector('.costC').textContent,
-      (d.mult??(+$('#defaultMult').value||1)),
+      fmt1(d.mult==null ? abs($('#defaultMult').value) : d.mult),
       tr.querySelector('.exC').textContent
     ];
   });
@@ -527,9 +553,9 @@ function rowTemplateB(data={}){
       <option value="圆管">圆管</option>
       <option value="方管">方管</option>
     </select></td>
-    <td class="group-input"><input class="wkg num"  type="number" step="0.01" value="${data.wkg??''}" placeholder="重量kg"></td>
-    <td class="group-input"><input class="qtyB num"  type="number" step="1"    value="${data.qty??1}"></td>
-    <td class="group-input"><input class="exB  num"  type="number" step="0.01" value="${data.ex??''}" placeholder="出厂价"></td>
+    <td class="group-input"><input class="wkg num"  type="number" step="0.01" min="0" value="${data.wkg??''}" placeholder="重量kg"></td>
+    <td class="group-input"><input class="qtyB num"  type="number" step="1" min="0" value="${data.qty??1}"></td>
+    <td class="group-input"><input class="exB  num"  type="number" step="0.01" min="0" value="${data.ex??''}" placeholder="出厂价"></td>
     <td class="group-calc num multB">0.00</td>
     <td class="row-actions">
       <button class="dupB" title="复制一行">复制</button>
@@ -546,6 +572,12 @@ function rowTemplateB(data={}){
   if(data.type){ tr.typeSel.value = data.type }
 
   [tr.typeSel,tr.wkg,tr.qty,tr.ex].forEach(el=>el.addEventListener('input',()=>recalcRowB(tr,true)));
+
+  // 结束输入：全部取绝对值，数量取整数
+  tr.wkg.addEventListener('change', ()=>{ tr.wkg.value = String(abs(tr.wkg.value)); recalcRowB(tr,true); });
+  tr.qty.addEventListener('change', ()=>{ tr.qty.value = String(Math.round(abs(tr.qty.value))); recalcRowB(tr,true); });
+  tr.ex .addEventListener('change', ()=>{ tr.ex.value  = String(abs(tr.ex.value));  recalcRowB(tr,true); });
+
   tr.$('.dupB').addEventListener('click',()=>{ addRowB(getRowDataB(tr)); });
   tr.$('.delB').addEventListener('click',()=>{ tr.remove(); saveAll(); recalcTotalsB(); });
 
@@ -556,16 +588,16 @@ function rowTemplateB(data={}){
 function getRowDataB(tr){
   return {
     type: tr.typeSel.value,
-    wkg: +tr.wkg.value||0,
-    qty: +tr.qty.value||1,
-    ex : +tr.ex.value||0
+    wkg: abs(tr.wkg.value),
+    qty: Math.round(abs(tr.qty.value)||0), // 可为 0
+    ex : abs(tr.ex.value)
   }
 }
 
 function recalcRowB(tr, doSave){
   const d = getRowDataB(tr);
   const unit = priceByTypeB(d.type);
-  const denom = (d.wkg||0) * (d.qty||1) * (unit||0);
+  const denom = (d.wkg||0) * (d.qty||0) * (unit||0);
   const mult = denom>0 ? (d.ex||0)/denom : 0;
   tr.multCell.textContent = fmt(mult);
   if(doSave) saveAll();
@@ -602,14 +634,14 @@ const STORAGE_KEY = 'cost-calc-v3';
 
 function saveAll(){
   const rowsA = $$('#body tr').map(tr=>getRowData(tr));
-  const rowsB = $$('#bodyC tr').map(tr=>getRowDataC(tr)); // 注意：B 是 bodyC
-  const rowsC = $$('#bodyB tr').map(tr=>getRowDataB(tr)); // 注意：C 是 bodyB
+  const rowsB = $$('#bodyC tr').map(tr=>getRowDataC(tr));
+  const rowsC = $$('#bodyB tr').map(tr=>getRowDataB(tr));
   const state = {
     defaults:{
-      density:+$('#density').value||7.85,
-      priceLine:+$('#priceLine').value||5,
-      pricePipe:+$('#pricePipe').value||7,
-      mult:+$('#defaultMult').value||3
+      density:abs($('#density').value)||7.85,
+      priceLine:abs($('#priceLine').value)||5,
+      pricePipe:abs($('#pricePipe').value)||7,
+      mult:abs($('#defaultMult').value)||3
     },
     rowsA, rowsB, rowsC
   };
@@ -628,8 +660,8 @@ function loadAll(){
       $('#defaultMult').value= st.defaults.mult ?? 3;
     }
     if(Array.isArray(st.rowsA)) st.rowsA.forEach(r=>addRow(r));
-    if(Array.isArray(st.rowsB)) st.rowsB.forEach(r=>addRowC(r)); // 加载到重量推成本
-    if(Array.isArray(st.rowsC)) st.rowsC.forEach(r=>addRowB(r)); // 加载到成本推倍数
+    if(Array.isArray(st.rowsB)) st.rowsB.forEach(r=>addRowC(r));
+    if(Array.isArray(st.rowsC)) st.rowsC.forEach(r=>addRowB(r));
     recalcTotals();
     recalcTotalsC();
     recalcTotalsB();
@@ -650,11 +682,19 @@ $('#reset').addEventListener('click',()=>{
   }
 });
 ['priceLine','pricePipe','defaultMult','density'].forEach(id=>{
-  $('#'+id).addEventListener('input',()=>{
-    // 全局参数变化 → 三张表都重算
-    $$('#body tr').forEach(tr=>recalcRow(tr,false));   // A
-    $$('#bodyC tr').forEach(tr=>recalcRowC(tr,false)); // B（重量推成本）
-    $$('#bodyB tr').forEach(tr=>recalcRowB(tr,false)); // C（成本推倍数）
+  // 输入时重算；结束输入时取绝对值和小数位（默认倍数保留1位）
+  const el = document.getElementById(id);
+  el.addEventListener('input',()=>{
+    $$('#body tr').forEach(tr=>recalcRow(tr,false));
+    $$('#bodyC tr').forEach(tr=>recalcRowC(tr,false));
+    $$('#bodyB tr').forEach(tr=>recalcRowB(tr,false));
+    recalcTotals(); recalcTotalsC(); recalcTotalsB(); saveAll();
+  });
+  el.addEventListener('change', ()=>{
+    el.value = (id==='defaultMult') ? fmt1(abs(el.value)) : String(abs(el.value));
+    $$('#body tr').forEach(tr=>recalcRow(tr,false));
+    $$('#bodyC tr').forEach(tr=>recalcRowC(tr,false));
+    $$('#bodyB tr').forEach(tr=>recalcRowB(tr,false));
     recalcTotals(); recalcTotalsC(); recalcTotalsB(); saveAll();
   });
 });
@@ -683,7 +723,7 @@ $('#resetB').addEventListener('click',()=>{
 
 /* ========= 初始化 ========= */
 if(!loadAll()){
-  // 初次打开不预置行，保持空白
+  // 初次打开不预置行
 }
 </script>
 </body>
